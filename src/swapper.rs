@@ -66,6 +66,7 @@ pub struct Swapper<'a> {
   active_pane_height: Option<i32>,
   active_pane_scroll_position: Option<i32>,
   active_pane_zoomed: Option<bool>,
+  active_pane_path: Option<String>,
   thumbs_pane_id: Option<String>,
   content: Option<String>,
   signal: String,
@@ -96,6 +97,7 @@ impl<'a> Swapper<'a> {
       active_pane_height: None,
       active_pane_scroll_position: None,
       active_pane_zoomed: None,
+      active_pane_path: None,
       thumbs_pane_id: None,
       content: None,
       signal,
@@ -107,7 +109,7 @@ impl<'a> Swapper<'a> {
       "tmux",
       "list-panes",
       "-F",
-      "#{pane_id}:#{?pane_in_mode,1,0}:#{pane_height}:#{scroll_position}:#{window_zoomed_flag}:#{?pane_active,active,nope}",
+      "#{pane_id}:#{?pane_in_mode,1,0}:#{pane_height}:#{scroll_position}:#{window_zoomed_flag}:#{?pane_active,active,nope}:#{pane_current_path}",
     ];
 
     let output = self
@@ -115,7 +117,7 @@ impl<'a> Swapper<'a> {
       .execute(active_command.iter().map(|arg| arg.to_string()).collect());
 
     let lines: Vec<&str> = output.split('\n').collect();
-    let chunks: Vec<Vec<&str>> = lines.into_iter().map(|line| line.split(':').collect()).collect();
+    let chunks: Vec<Vec<&str>> = lines.into_iter().map(|line| line.splitn(7, ':').collect()).collect();
 
     let active_pane = chunks
       .iter()
@@ -147,6 +149,10 @@ impl<'a> Swapper<'a> {
     let zoomed_pane = *active_pane.get(4).expect("Unable to retrieve zoom pane property") == "1";
 
     self.active_pane_zoomed = Some(zoomed_pane);
+
+    let pane_path = active_pane.get(6).map(|path| path.to_string()).unwrap_or_default();
+
+    self.active_pane_path = if pane_path.is_empty() { None } else { Some(pane_path) };
   }
 
   pub fn execute_thumbs(&mut self) {
@@ -181,6 +187,14 @@ impl<'a> Swapper<'a> {
             "select-bg-color",
             "multi-fg-color",
             "multi-bg-color",
+            "file-hint-fg-color",
+            "file-hint-bg-color",
+            "dir-hint-fg-color",
+            "dir-hint-bg-color",
+            "github-hint-fg-color",
+            "github-hint-bg-color",
+            "url-hint-fg-color",
+            "url-hint-bg-color",
           ];
 
           if string_params.iter().any(|&x| x == name) {
@@ -214,13 +228,21 @@ impl<'a> Swapper<'a> {
       "".to_string()
     };
 
+    let cwd_param = match self.active_pane_path.as_ref() {
+      Some(path) if !path.is_empty() => {
+        format!(" --cwd '{}'", path.replace('\'', "'\\''"))
+      }
+      _ => "".to_string(),
+    };
+
     let pane_command = format!(
-        "tmux capture-pane -J -t {active_pane_id} -p{scroll_params} | tail -n {height} | {dir}/target/release/thumbs -f '%U:%H' -t {tmp} {args}; tmux swap-pane -t {active_pane_id}; {zoom_command} tmux wait-for -S {signal}",
+        "tmux capture-pane -J -t {active_pane_id} -p{scroll_params} | tail -n {height} | {dir}/target/release/thumbs -f '%U:%H' -t {tmp}{cwd_param} {args}; tmux swap-pane -t {active_pane_id}; {zoom_command} tmux wait-for -S {signal}",
         active_pane_id = active_pane_id,
         scroll_params = scroll_params,
         height = self.active_pane_height.unwrap_or(i32::MAX),
         dir = self.dir,
         tmp = TMP_FILE,
+        cwd_param = cwd_param,
         args = args.join(" "),
         zoom_command = zoom_command,
         signal = self.signal

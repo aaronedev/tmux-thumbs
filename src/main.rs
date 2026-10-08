@@ -6,6 +6,7 @@ extern crate termion;
 
 mod alphabets;
 mod colors;
+mod kind;
 mod state;
 mod view;
 
@@ -116,6 +117,60 @@ fn app_args<'a>() -> clap::ArgMatches<'a> {
         .short("p"),
     )
     .arg(
+      Arg::with_name("cwd")
+        .help("Working directory of the captured pane, used to classify file and directory matches")
+        .long("cwd")
+        .default_value(""),
+    )
+    .arg(
+      Arg::with_name("file_hint_foreground_color")
+        .help("Hint foreground color for files")
+        .long("file-hint-fg-color")
+        .default_value(""),
+    )
+    .arg(
+      Arg::with_name("file_hint_background_color")
+        .help("Hint background color for files")
+        .long("file-hint-bg-color")
+        .default_value(""),
+    )
+    .arg(
+      Arg::with_name("dir_hint_foreground_color")
+        .help("Hint foreground color for directories")
+        .long("dir-hint-fg-color")
+        .default_value(""),
+    )
+    .arg(
+      Arg::with_name("dir_hint_background_color")
+        .help("Hint background color for directories")
+        .long("dir-hint-bg-color")
+        .default_value(""),
+    )
+    .arg(
+      Arg::with_name("github_hint_foreground_color")
+        .help("Hint foreground color for GitHub links")
+        .long("github-hint-fg-color")
+        .default_value(""),
+    )
+    .arg(
+      Arg::with_name("github_hint_background_color")
+        .help("Hint background color for GitHub links")
+        .long("github-hint-bg-color")
+        .default_value(""),
+    )
+    .arg(
+      Arg::with_name("url_hint_foreground_color")
+        .help("Hint foreground color for other URLs")
+        .long("url-hint-fg-color")
+        .default_value(""),
+    )
+    .arg(
+      Arg::with_name("url_hint_background_color")
+        .help("Hint background color for other URLs")
+        .long("url-hint-bg-color")
+        .default_value(""),
+    )
+    .arg(
       Arg::with_name("regexp")
         .help("Use this regexp as extra pattern to match")
         .long("regexp")
@@ -137,6 +192,14 @@ fn app_args<'a>() -> clap::ArgMatches<'a> {
         .takes_value(true),
     )
     .get_matches()
+}
+
+fn optional_color(value: &str) -> Option<Box<dyn termion::color::Color>> {
+  if value.is_empty() {
+    None
+  } else {
+    Some(colors::get_color(value))
+  }
 }
 
 fn main() {
@@ -164,6 +227,18 @@ fn main() {
   let multi_foreground_color = colors::get_color(args.value_of("multi_foreground_color").unwrap());
   let multi_background_color = colors::get_color(args.value_of("multi_background_color").unwrap());
 
+  let cwd = args.value_of("cwd").unwrap();
+  let cwd = if cwd.is_empty() { None } else { Some(cwd) };
+
+  let file_hint_foreground_color = optional_color(args.value_of("file_hint_foreground_color").unwrap());
+  let file_hint_background_color = optional_color(args.value_of("file_hint_background_color").unwrap());
+  let dir_hint_foreground_color = optional_color(args.value_of("dir_hint_foreground_color").unwrap());
+  let dir_hint_background_color = optional_color(args.value_of("dir_hint_background_color").unwrap());
+  let github_hint_foreground_color = optional_color(args.value_of("github_hint_foreground_color").unwrap());
+  let github_hint_background_color = optional_color(args.value_of("github_hint_background_color").unwrap());
+  let url_hint_foreground_color = optional_color(args.value_of("url_hint_foreground_color").unwrap());
+  let url_hint_background_color = optional_color(args.value_of("url_hint_background_color").unwrap());
+
   let stdin = io::stdin();
   let mut handle = stdin.lock();
   let mut output = String::new();
@@ -182,6 +257,7 @@ fn main() {
       unique,
       contrast,
       position,
+      cwd,
       select_foreground_color,
       select_background_color,
       multi_foreground_color,
@@ -190,6 +266,14 @@ fn main() {
       background_color,
       hint_foreground_color,
       hint_background_color,
+      file_hint_foreground_color,
+      file_hint_background_color,
+      dir_hint_foreground_color,
+      dir_hint_background_color,
+      github_hint_foreground_color,
+      github_hint_background_color,
+      url_hint_foreground_color,
+      url_hint_background_color,
     );
 
     viewbox.present()

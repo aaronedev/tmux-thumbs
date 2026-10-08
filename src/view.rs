@@ -25,6 +25,14 @@ pub struct View<'a> {
   background_color: Box<dyn color::Color>,
   hint_background_color: Box<dyn color::Color>,
   hint_foreground_color: Box<dyn color::Color>,
+  file_hint_foreground_color: Option<Box<dyn color::Color>>,
+  file_hint_background_color: Option<Box<dyn color::Color>>,
+  dir_hint_foreground_color: Option<Box<dyn color::Color>>,
+  dir_hint_background_color: Option<Box<dyn color::Color>>,
+  github_hint_foreground_color: Option<Box<dyn color::Color>>,
+  github_hint_background_color: Option<Box<dyn color::Color>>,
+  url_hint_foreground_color: Option<Box<dyn color::Color>>,
+  url_hint_background_color: Option<Box<dyn color::Color>>,
   chosen: Vec<(String, bool)>,
 }
 
@@ -41,6 +49,7 @@ impl<'a> View<'a> {
     unique: bool,
     contrast: bool,
     position: &'a str,
+    cwd: Option<&'a str>,
     select_foreground_color: Box<dyn color::Color>,
     select_background_color: Box<dyn color::Color>,
     multi_foreground_color: Box<dyn color::Color>,
@@ -49,8 +58,17 @@ impl<'a> View<'a> {
     background_color: Box<dyn color::Color>,
     hint_foreground_color: Box<dyn color::Color>,
     hint_background_color: Box<dyn color::Color>,
+    file_hint_foreground_color: Option<Box<dyn color::Color>>,
+    file_hint_background_color: Option<Box<dyn color::Color>>,
+    dir_hint_foreground_color: Option<Box<dyn color::Color>>,
+    dir_hint_background_color: Option<Box<dyn color::Color>>,
+    github_hint_foreground_color: Option<Box<dyn color::Color>>,
+    github_hint_background_color: Option<Box<dyn color::Color>>,
+    url_hint_foreground_color: Option<Box<dyn color::Color>>,
+    url_hint_background_color: Option<Box<dyn color::Color>>,
   ) -> View<'a> {
-    let matches = state.matches(reverse, unique);
+    let mut matches = state.matches(reverse, unique);
+    kind::assign(&mut matches, cwd);
     let skip = if reverse { matches.len() - 1 } else { 0 };
 
     View {
@@ -68,6 +86,14 @@ impl<'a> View<'a> {
       background_color,
       hint_foreground_color,
       hint_background_color,
+      file_hint_foreground_color,
+      file_hint_background_color,
+      dir_hint_foreground_color,
+      dir_hint_background_color,
+      github_hint_foreground_color,
+      github_hint_background_color,
+      url_hint_foreground_color,
+      url_hint_background_color,
       chosen: vec![],
     }
   }
@@ -90,6 +116,27 @@ impl<'a> View<'a> {
     } else {
       hint.to_string()
     }
+  }
+
+  fn kind_hint_colors(&self, kind: kind::Kind) -> (&dyn color::Color, &dyn color::Color) {
+    let (foreground, background): (&Option<Box<dyn color::Color>>, &Option<Box<dyn color::Color>>) = match kind {
+      kind::Kind::File => (&self.file_hint_foreground_color, &self.file_hint_background_color),
+      kind::Kind::Directory => (&self.dir_hint_foreground_color, &self.dir_hint_background_color),
+      kind::Kind::Github => (&self.github_hint_foreground_color, &self.github_hint_background_color),
+      kind::Kind::Url => (&self.url_hint_foreground_color, &self.url_hint_background_color),
+      kind::Kind::None => (&None, &None),
+    };
+
+    (
+      foreground
+        .as_ref()
+        .map(|color| &**color)
+        .unwrap_or(&*self.hint_foreground_color),
+      background
+        .as_ref()
+        .map(|color| &**color)
+        .unwrap_or(&*self.hint_background_color),
+    )
   }
 
   fn render(&self, stdout: &mut dyn Write, typed_hint: &str) -> () {
@@ -150,15 +197,16 @@ impl<'a> View<'a> {
 
         let text = self.make_hint_text(hint.as_str());
         let final_position = std::cmp::max(offset as i16 + extra_position as i16, 0);
+        let (hint_foreground_color, hint_background_color) = self.kind_hint_colors(mat.kind);
 
         print!(
           "{goto}{background}{foregroud}{text}{resetf}{resetb}",
           goto = cursor::Goto(final_position as u16 + 1, mat.y as u16 + 1),
-          foregroud = color::Fg(&*self.hint_foreground_color),
-          background = color::Bg(&*self.hint_background_color),
+          foregroud = color::Fg(hint_foreground_color),
+          background = color::Bg(hint_background_color),
           resetf = color::Fg(color::Reset),
           resetb = color::Bg(color::Reset),
-          text = &text
+          text = text
         );
 
         if hint.starts_with(typed_hint) {
@@ -336,6 +384,14 @@ mod tests {
       background_color: colors::get_color("default"),
       hint_background_color: colors::get_color("default"),
       hint_foreground_color: colors::get_color("default"),
+      file_hint_foreground_color: None,
+      file_hint_background_color: None,
+      dir_hint_foreground_color: None,
+      dir_hint_background_color: None,
+      github_hint_foreground_color: None,
+      github_hint_background_color: None,
+      url_hint_foreground_color: None,
+      url_hint_background_color: None,
       chosen: vec![],
     };
 

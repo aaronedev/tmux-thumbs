@@ -100,6 +100,7 @@ NOTE: for changes to take effect, you'll need to source again your `.tmux.conf` 
 * [@thumbs-fg-color](#thumbs-fg-color)
 * [@thumbs-hint-bg-color](#thumbs-hint-bg-color)
 * [@thumbs-hint-fg-color](#thumbs-hint-fg-color)
+* [@thumbs-kind-hint-colors](#thumbs-kind-hint-colors)
 * [@thumbs-select-fg-color](#thumbs-select-fg-color)
 * [@thumbs-select-bg-color](#thumbs-select-bg-color)
 * [@thumbs-multi-fg-color](#thumbs-multi-fg-color)
@@ -270,6 +271,27 @@ For example:
 
 ```
 set -g @thumbs-hint-fg-color green
+```
+
+### @thumbs-kind-hint-colors
+
+Fork addition (`aaronedev/tmux-thumbs`): per-kind hint colors. Each option
+defaults to `@thumbs-hint-fg-color` / `@thumbs-hint-bg-color` when unset.
+
+* `@thumbs-file-hint-fg-color` / `@thumbs-file-hint-bg-color`: existing files
+* `@thumbs-dir-hint-fg-color` / `@thumbs-dir-hint-bg-color`: existing directories
+* `@thumbs-github-hint-fg-color` / `@thumbs-github-hint-bg-color`: `github.com`,
+  `*.github.com`, and `git@github.com:` links
+* `@thumbs-url-hint-fg-color` / `@thumbs-url-hint-bg-color`: other URLs
+
+File and directory matches are resolved against the captured pane's working
+directory. For example:
+
+```
+set -g @thumbs-file-hint-bg-color '#007773'
+set -g @thumbs-dir-hint-bg-color '#6b4c9a'
+set -g @thumbs-github-hint-bg-color '#fd0098'
+set -g @thumbs-url-hint-bg-color '#00fff9'
 ```
 
 ### @thumbs-select-fg-color

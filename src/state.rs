@@ -1,3 +1,4 @@
+use crate::kind::Kind;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
@@ -32,6 +33,7 @@ pub struct Match<'a> {
   pub pattern: &'a str,
   pub text: &'a str,
   pub hint: Option<String>,
+  pub kind: Kind,
 }
 
 impl<'a> fmt::Debug for Match<'a> {
@@ -135,6 +137,7 @@ impl<'a> State<'a> {
                   pattern: name,
                   text: subtext,
                   hint: None,
+                  kind: Kind::None,
                 });
               }
             }
